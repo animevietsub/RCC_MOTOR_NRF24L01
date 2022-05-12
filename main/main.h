@@ -19,6 +19,14 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+typedef struct
+{
+    int16_t AL_DATA;
+    int16_t ML_DATA;
+    int16_t AR_DATA;
+    int16_t MR_DATA;
+} nrf24l01_data_t;
 
+void writeByteToStruct(const void *object, size_t size, uint8_t *in_bytes);
 
 #endif

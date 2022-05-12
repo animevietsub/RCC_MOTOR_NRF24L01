@@ -29,15 +29,64 @@
 #include "hc595_i2s_pwm.h"
 
 #include "main.h"
+#include "mirf.h"
+
+static const char *TAG_NRF24L01 = "[NRF24L01]";
 
 hc595_control_t hc595_control;
+nrf24l01_data_t nrf24l01_data = {
+    .AL_DATA = 0,
+    .ML_DATA = 0,
+    .AR_DATA = 0,
+    .MR_DATA = 0,
+};
+uint8_t *nrf24l01_data_bytes;
+
+void writeByteToStruct(const void *object, size_t size, uint8_t *in_bytes)
+{
+    unsigned char *byte;
+    for (byte = object; size--; ++byte)
+    {
+        *byte = *in_bytes;
+        in_bytes++;
+    }
+}
+
+static void taskNRFReceiver()
+{
+    NRF24_t dev;
+    Nrf24_init(&dev);
+    uint8_t payload = sizeof(nrf24l01_data_t);
+    uint8_t channel = 90;
+    Nrf24_config(&dev, channel, payload);
+    Nrf24_setRADDR(&dev, (uint8_t *)"FGHIJ");
+    Nrf24_SetSpeedDataRates(&dev, 1);
+    Nrf24_setRetransmitDelay(&dev, 0);
+    Nrf24_printDetails(&dev);
+    while (1)
+    {
+        if (Nrf24_dataReady(&dev))
+        {
+            Nrf24_getData(&dev, nrf24l01_data_bytes);
+            writeByteToStruct(&nrf24l01_data, sizeof(nrf24l01_data_t), nrf24l01_data_bytes);
+            ESP_LOGI(TAG_NRF24L01, "AL_DATA: %d", nrf24l01_data.AL_DATA);
+            ESP_LOGI(TAG_NRF24L01, "ML_DATA: %d", nrf24l01_data.ML_DATA);
+            ESP_LOGI(TAG_NRF24L01, "AR_DATA: %d", nrf24l01_data.AR_DATA);
+            ESP_LOGI(TAG_NRF24L01, "MR_DATA: %d", nrf24l01_data.MR_DATA);
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+    vTaskDelete(NULL);
+}
 
 void app_main(void)
 {
+    nrf24l01_data_bytes = malloc(sizeof(nrf24l01_data_t));
     HC595_I2SInit();
     HC595I2SPWM_Init(&hc595_control);
     L298N_SetDirection(&hc595_control, L298N_CHANNEL_L, L298N_DIRECTION_CW);
     L298N_SetDirection(&hc595_control, L298N_CHANNEL_R, L298N_DIRECTION_CW);
     L298N_SetPWMDuty(&hc595_control, L298N_CHANNEL_L, 50);
     L298N_SetPWMDuty(&hc595_control, L298N_CHANNEL_R, 50);
+    xTaskCreate(taskNRFReceiver, "[taskNRFReceiver]", 1024 * 3, NULL, 2, NULL);
 }

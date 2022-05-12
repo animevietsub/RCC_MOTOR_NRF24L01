@@ -11,6 +11,12 @@
     "idf.pythonBinPathWin": "c:\\Espressif\\tools\\python_env\\idf4.4_py3.8_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "c:\\Espressif\\tools",
     "files.associations": {
-        "hc595_i2s_pwm.h": "c"
+        "hc595_i2s_pwm.h": "c",
+        "array": "c",
+        "bitset": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "regex": "c",
+        "utility": "c"
     }
 }
