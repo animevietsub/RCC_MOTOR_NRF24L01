@@ -27,6 +27,7 @@
 #include "esp_system.h"
 
 #include "hc595_i2s_pwm.h"
+#include "fastmath.h"
 
 #include "main.h"
 #include "mirf.h"
@@ -57,9 +58,9 @@ static void taskNRFReceiver()
     NRF24_t dev;
     Nrf24_init(&dev);
     uint8_t payload = sizeof(nrf24l01_data_t);
-    uint8_t channel = 90;
+    uint8_t channel = 100;
     Nrf24_config(&dev, channel, payload);
-    Nrf24_setRADDR(&dev, (uint8_t *)"FGHIJ");
+    Nrf24_setRADDR(&dev, (uint8_t *)"GAMOT");
     Nrf24_SetSpeedDataRates(&dev, 1);
     Nrf24_setRetransmitDelay(&dev, 0);
     Nrf24_printDetails(&dev);
@@ -69,12 +70,41 @@ static void taskNRFReceiver()
         {
             Nrf24_getData(&dev, nrf24l01_data_bytes);
             writeByteToStruct(&nrf24l01_data, sizeof(nrf24l01_data_t), nrf24l01_data_bytes);
-            ESP_LOGI(TAG_NRF24L01, "AL_DATA: %d", nrf24l01_data.AL_DATA);
-            ESP_LOGI(TAG_NRF24L01, "ML_DATA: %d", nrf24l01_data.ML_DATA);
-            ESP_LOGI(TAG_NRF24L01, "AR_DATA: %d", nrf24l01_data.AR_DATA);
-            ESP_LOGI(TAG_NRF24L01, "MR_DATA: %d", nrf24l01_data.MR_DATA);
+            // ESP_LOGI(TAG_NRF24L01, "AL_DATA: %d", nrf24l01_data.AL_DATA);
+            // ESP_LOGI(TAG_NRF24L01, "ML_DATA: %d", nrf24l01_data.ML_DATA);
+            // ESP_LOGI(TAG_NRF24L01, "AR_DATA: %d", nrf24l01_data.AR_DATA);
+            // ESP_LOGI(TAG_NRF24L01, "MR_DATA: %d", nrf24l01_data.MR_DATA);
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    vTaskDelete(NULL);
+}
+
+static void taskMotorControl()
+{
+    while (1)
+    {
+        if (nrf24l01_data.MR_DATA > MAG_THRESHOLD)
+        {
+            if (nrf24l01_data.MR_DATA > 100)
+                nrf24l01_data.MR_DATA = 100;
+            L298N_SetPWMDir(&hc595_control, L298N_CHANNEL_L, (int8_t)(nrf24l01_data.MR_DATA * sinf((nrf24l01_data.AR_DATA + 45) / DEGREE_TO_RAD)));
+            L298N_SetPWMDir(&hc595_control, L298N_CHANNEL_R, (int8_t)(nrf24l01_data.MR_DATA * cosf((nrf24l01_data.AR_DATA + 45) / DEGREE_TO_RAD)));
+        }
+        else
+        {
+            L298N_Stop(&hc595_control, L298N_CHANNEL_L);
+            L298N_Stop(&hc595_control, L298N_CHANNEL_R);
+        }
+        if (nrf24l01_data.ML_DATA > MAG_THRESHOLD)
+        {
+            Servo_SetAngle(&hc595_control, nrf24l01_data.AL_DATA);
+        }
+        else
+        {
+            Servo_SetAngle(&hc595_control, 0);
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     vTaskDelete(NULL);
 }
@@ -84,9 +114,6 @@ void app_main(void)
     nrf24l01_data_bytes = malloc(sizeof(nrf24l01_data_t));
     HC595_I2SInit();
     HC595I2SPWM_Init(&hc595_control);
-    L298N_SetDirection(&hc595_control, L298N_CHANNEL_L, L298N_DIRECTION_CW);
-    L298N_SetDirection(&hc595_control, L298N_CHANNEL_R, L298N_DIRECTION_CW);
-    L298N_SetPWMDuty(&hc595_control, L298N_CHANNEL_L, 50);
-    L298N_SetPWMDuty(&hc595_control, L298N_CHANNEL_R, 50);
     xTaskCreate(taskNRFReceiver, "[taskNRFReceiver]", 1024 * 3, NULL, 2, NULL);
+    xTaskCreate(taskMotorControl, "[taskMotorControl]", 1024 * 3, NULL, 3, NULL);
 }

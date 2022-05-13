@@ -19,6 +19,9 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+#define MAG_THRESHOLD 10
+#define DEGREE_TO_RAD 57.3
+
 typedef struct
 {
     int16_t AL_DATA;

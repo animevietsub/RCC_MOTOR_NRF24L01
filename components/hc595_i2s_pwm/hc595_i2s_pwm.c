@@ -244,6 +244,20 @@ void L298N_SetPWMDuty(hc595_control_t *control, l298n_channel_t channel, uint8_t
     }
 }
 
+void L298N_SetPWMDir(hc595_control_t *control, l298n_channel_t channel, int8_t percent)
+{
+    if (percent >= 0)
+    {
+        L298N_SetDirection(control, channel, L298N_DIRECTION_CCW);
+        L298N_SetPWMDuty(control, channel, percent);
+    }
+    else
+    {
+        L298N_SetDirection(control, channel, L298N_DIRECTION_CW);
+        L298N_SetPWMDuty(control, channel, -percent);
+    }
+}
+
 void L298N_Stop(hc595_control_t *control, l298n_channel_t channel)
 {
     L298N_SetPWMDuty(control, channel, 0);
@@ -254,4 +268,9 @@ void L298N_Brake(hc595_control_t *control, l298n_channel_t channel)
 {
     L298N_SetPWMDuty(control, channel, 100);
     L298N_SetDirection(control, channel, L298N_DIRECTION_HL);
+}
+
+void Servo_SetAngle(hc595_control_t *control, int16_t angle)
+{
+    *((*control).D_PWM_SERVO) = -(angle / 18) + 7;
 }

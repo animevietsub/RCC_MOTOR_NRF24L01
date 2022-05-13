@@ -16,7 +16,7 @@
 #define DMA_BUFFER_LENGTH 64
 #define DMA_BUFFER_COUNT 16
 #define DMA_BUFFER_PREPARE (DMA_BUFFER_LENGTH * 2) // 64 queues * 2 channels
-#define QUEUE_DMA_MULTIPLIER 8
+#define QUEUE_DMA_MULTIPLIER 16
 
 #define HC595_NUM_RCLK 17
 #define HC595_NUM_SRCLK 16
@@ -61,8 +61,10 @@ void HC595_I2SInit();
 void HC595I2SPWM_Init(hc595_control_t *control);
 void L298N_SetDirection(hc595_control_t *control, l298n_channel_t channel, l298n_direction_t dir);
 void L298N_SetPWMDuty(hc595_control_t *control, l298n_channel_t channel, uint8_t percent);
+void L298N_SetPWMDir(hc595_control_t *control, l298n_channel_t channel, int8_t percent);
 void L298N_Stop(hc595_control_t *control, l298n_channel_t channel);
 void L298N_Brake(hc595_control_t *control, l298n_channel_t channel);
+void Servo_SetAngle(hc595_control_t *control, int16_t angle);
 
 
 #endif
